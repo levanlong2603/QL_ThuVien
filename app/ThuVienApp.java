@@ -6,9 +6,9 @@ import model.NguoiDung;
 import model.Sach;
 import model.ThuThu;
 import service.QuanLyDocGia;
-import service.QuanLyNguoiDung;
 import service.QuanLyPhieuMuon;
 import service.QuanLySach;
+import service.QuanLyNguoiDung;
 import ui.MenuAdmin;
 import ui.MenuThuThu;
 
@@ -39,12 +39,24 @@ public class ThuVienApp {
         quanLyNguoiDung.themAdmin(new Admin("AD001", "Quan tri he thong", "admin", "123"));
         quanLyNguoiDung.themThuThu(new ThuThu("TT001", "Thu Thu A", "thuthu", "123",
             "0909888777", "thuthu.a@thuvien.vn", "Ha Noi"));
+        quanLyNguoiDung.themThuThu(new ThuThu("TT002", "Thu Thu B", "thuthu2", "123",
+            "0909555666", "thuthu.b@thuvien.vn", "Da Nang"));
 
         quanLySach.themSach(new Sach("S001", "Lap trinh Java co ban", "Nguyen Van A", "CNTT", "NXB Tre", 2021, 10, 10));
         quanLySach.themSach(new Sach("S002", "Cau truc du lieu", "Tran Thi B", "CNTT", "NXB Giao Duc", 2020, 5, 5));
+        quanLySach.themSach(new Sach("S003", "Co so du lieu", "Le Van E", "CNTT", "NXB Tong Hop", 2019, 8, 8));
+        quanLySach.themSach(new Sach("S004", "Kinh te hoc vi mo", "Pham Thi F", "Kinh Te", "NXB Lao Dong", 2018, 6, 6));
 
         quanLyDocGia.themDocGia(new DocGia("DG001", "Le Van C", "0900000001", "c@example.com", "Ha Noi"));
         quanLyDocGia.themDocGia(new DocGia("DG002", "Pham Thi D", "0900000002", "d@example.com", "Da Nang"));
+        quanLyDocGia.themDocGia(new DocGia("DG003", "Nguyen Thi G", "0900000003", "g@example.com", "Hai Phong"));
+        quanLyDocGia.themDocGia(new DocGia("DG004", "Tran Van H", "0900000004", "h@example.com", "Can Tho"));
+
+        // Du lieu mau phieu muon/tra de hien thi ngay o tab nghiep vu.
+        quanLyPhieuMuon.muonSach("PM001", "S001", "DG001", "TT001", 7);
+        quanLyPhieuMuon.muonSach("PM002", "S002", "DG002", "TT001", 14);
+        quanLyPhieuMuon.muonSach("PM003", "S003", "DG003", "TT002", 10);
+        quanLyPhieuMuon.traSach("PM001");
     }
 
     /**
@@ -72,7 +84,7 @@ public class ThuVienApp {
         panelForm.add(txtMatKhau);
 
         JButton btnDangNhap = new JButton("Đăng nhập");
-        JLabel lblTrangThai = new JLabel("Tài khoản mẫu: admin/123 hoặc thuthu/123");
+        JLabel lblTrangThai = new JLabel(" ");
 
         btnDangNhap.addActionListener(e -> {
             String tenDangNhap = txtTenDangNhap.getText().trim();
@@ -87,8 +99,11 @@ public class ThuVienApp {
             khungDangNhap.dispose();
             if (nguoiDung instanceof Admin) {
                 MenuAdmin menuAdmin = new MenuAdmin(
+                        (Admin) nguoiDung,
                         quanLySach,
+                        quanLyDocGia,
                         quanLyNguoiDung,
+                        quanLyPhieuMuon,
                         this::hienThiMenuDangNhap
                 );
                 menuAdmin.hienThiMenu();
@@ -117,4 +132,3 @@ public class ThuVienApp {
         khungDangNhap.setVisible(true);
     }
 }
-
