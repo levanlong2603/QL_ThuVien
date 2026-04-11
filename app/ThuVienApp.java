@@ -74,8 +74,11 @@ public class ThuVienApp {
         JLabel tieuDe = new JLabel("HỆ THỐNG QUẢN LÝ THƯ VIỆN", SwingConstants.CENTER);
         tieuDe.setFont(new Font("SansSerif", Font.BOLD, 16));
 
-        JTextField txtTenDangNhap = new JTextField(20);
-        JPasswordField txtMatKhau = new JPasswordField(20);
+        JTextField txtTenDangNhap = new JTextField();
+        JPasswordField txtMatKhau = new JPasswordField();
+        Dimension kichThuocNhap = new Dimension(170, 30);
+        txtTenDangNhap.setPreferredSize(kichThuocNhap);
+        txtMatKhau.setPreferredSize(kichThuocNhap);
 
         JPanel panelForm = new JPanel(new GridLayout(2, 2, 8, 8));
         panelForm.add(new JLabel("Tên đăng nhập"));
@@ -85,6 +88,8 @@ public class ThuVienApp {
 
         JButton btnDangNhap = new JButton("Đăng nhập");
         JLabel lblTrangThai = new JLabel(" ");
+        lblTrangThai.setHorizontalAlignment(SwingConstants.CENTER);
+        lblTrangThai.setForeground(new Color(180, 30, 30));
 
         btnDangNhap.addActionListener(e -> {
             String tenDangNhap = txtTenDangNhap.getText().trim();
@@ -122,9 +127,12 @@ public class ThuVienApp {
         panelChinh.add(tieuDe, BorderLayout.NORTH);
         panelChinh.add(panelForm, BorderLayout.CENTER);
 
-        JPanel panelDuoi = new JPanel(new BorderLayout());
-        panelDuoi.add(btnDangNhap, BorderLayout.WEST);
-        panelDuoi.add(lblTrangThai, BorderLayout.CENTER);
+        JPanel panelDuoi = new JPanel(new GridLayout(2, 1, 0, 6));
+        panelDuoi.add(lblTrangThai);
+
+        JPanel panelNutDangNhap = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        panelNutDangNhap.add(btnDangNhap);
+        panelDuoi.add(panelNutDangNhap);
 
         panelChinh.add(panelDuoi, BorderLayout.SOUTH);
 

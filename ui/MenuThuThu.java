@@ -9,19 +9,31 @@ import service.QuanLyPhieuMuon;
 import service.QuanLySach;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 /**
  * Giao dien danh cho thu thu.
  */
 public class MenuThuThu extends JFrame {
+    private static final DateTimeFormatter DINH_DANG_NGAY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
     private final ThuThu thuThuDangNhap;
     private final QuanLySach quanLySach;
     private final QuanLyDocGia quanLyDocGia;
     private final QuanLyPhieuMuon quanLyPhieuMuon;
     private final Runnable suKienDangXuat;
+    private Runnable lamMoiBangSach = () -> {};
+    private final JLabel lblThongKeMuonTra = new JLabel(" ", SwingConstants.RIGHT);
+    private final JLabel lblThongKeSach = new JLabel(" ", SwingConstants.RIGHT);
+    private final JLabel lblThongKeDocGia = new JLabel(" ", SwingConstants.RIGHT);
 
     public MenuThuThu(ThuThu thuThuDangNhap, QuanLySach quanLySach, QuanLyDocGia quanLyDocGia,
                       QuanLyPhieuMuon quanLyPhieuMuon,
@@ -64,25 +76,31 @@ public class MenuThuThu extends JFrame {
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         JTextField txtMaPhieuMuon = new JTextField(10);
+        JTextField txtMaDocGia = new JTextField(10);
         JTextField txtMaSach = new JTextField(10);
         JTextField txtTenSach = new JTextField(18);
         JTextField txtNgayMuon = new JTextField(12);
-        JTextField txtNgayTra = new JTextField(12);
+        JTextField txtSoNgayMuon = new JTextField(12);
 
         txtTenSach.setEditable(false);
-        txtNgayMuon.setEditable(false);
-        txtNgayTra.setEditable(false);
+        txtMaPhieuMuon.setToolTipText("Mã được gợi ý tự động, bạn có thể sửa");
+        txtMaPhieuMuon.setText(goiYMaPhieuMuonTiepTheo());
+        batTuDongGoiYNgayMuon(txtNgayMuon);
 
-        JPanel form = new JPanel(new GridLayout(3, 2, 10, 8));
+        JPanel form = new JPanel(new GridLayout(4, 2, 10, 8));
         form.add(taoDongNhap("Mã phiếu mượn", txtMaPhieuMuon));
+        form.add(taoDongNhap("Mã độc giả", txtMaDocGia));
         form.add(taoDongNhap("Mã sách", txtMaSach));
         form.add(taoDongNhap("Tên sách", txtTenSach));
-        form.add(new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0)));
         form.add(taoDongNhap("Ngày mượn", txtNgayMuon));
-        form.add(taoDongNhap("Ngày trả", txtNgayTra));
+        form.add(taoDongNhap("Số ngày mượn", txtSoNgayMuon));
+        form.add(new JLabel("Định dạng ngày: dd/MM/yyyy"));
+        form.add(new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0)));
+
+        txtSoNgayMuon.setText("7");
 
         DefaultTableModel modelPhieu = new DefaultTableModel(
-                new String[]{"Mã phiếu", "Mã độc giả", "Mã sách", "Tên sách", "Số ngày", "Ngày mượn", "Ngày trả", "Trạng thái"}, 0);
+            new String[]{"Mã phiếu", "Mã độc giả", "Mã sách", "Tên sách", "Số ngày mượn", "Số ngày còn lại", "Ngày mượn", "Ngày trả", "Trạng thái"}, 0);
         JTable bangPhieu = new JTable(modelPhieu);
         bangPhieu.getSelectionModel().addListSelectionListener(e -> {
             if (e.getValueIsAdjusting()) {
@@ -91,22 +109,38 @@ public class MenuThuThu extends JFrame {
             int dong = bangPhieu.getSelectedRow();
             if (dong >= 0) {
                 txtMaPhieuMuon.setText(String.valueOf(modelPhieu.getValueAt(dong, 0)));
+                txtMaDocGia.setText(String.valueOf(modelPhieu.getValueAt(dong, 1)));
                 txtMaSach.setText(String.valueOf(modelPhieu.getValueAt(dong, 2)));
                 txtTenSach.setText(String.valueOf(modelPhieu.getValueAt(dong, 3)));
-                txtNgayMuon.setText(String.valueOf(modelPhieu.getValueAt(dong, 5)));
-                txtNgayTra.setText(String.valueOf(modelPhieu.getValueAt(dong, 6)));
+                txtSoNgayMuon.setText(String.valueOf(modelPhieu.getValueAt(dong, 4)));
+                txtNgayMuon.setText(String.valueOf(modelPhieu.getValueAt(dong, 6)));
             }
         });
 
-        txtMaSach.addActionListener(e -> {
-            Sach sach = quanLySach.timSachTheoMa(txtMaSach.getText().trim());
-            txtTenSach.setText(sach == null ? "" : sach.getTenSach());
+        txtMaSach.addActionListener(e -> capNhatTenSachTheoMa(txtMaSach, txtTenSach));
+        txtMaSach.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                capNhatTenSachTheoMa(txtMaSach, txtTenSach);
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                capNhatTenSachTheoMa(txtMaSach, txtTenSach);
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                capNhatTenSachTheoMa(txtMaSach, txtTenSach);
+            }
         });
 
         JLabel lblThongBao = new JLabel(" ");
 
         JButton btnMuon = new JButton("Mượn sách");
         JButton btnTra = new JButton("Trả sách");
+        JButton btnCapNhat = new JButton("Cập nhật phiếu");
+        JButton btnXoaPhieu = new JButton("Xóa phiếu");
         JButton btnLamMoi = new JButton("Làm mới");
         JButton btnXoaForm = new JButton("Xóa nhập");
 
@@ -116,17 +150,7 @@ public class MenuThuThu extends JFrame {
 
         btnMuon.addActionListener(e -> {
             try {
-                String maDocGia = JOptionPane.showInputDialog(
-                        this,
-                        "Nhập mã độc giả cho phiếu mượn:",
-                        "Mã độc giả",
-                        JOptionPane.QUESTION_MESSAGE
-                );
-                if (maDocGia == null) {
-                    lblThongBao.setText("Đã hủy thao tác mượn sách");
-                    return;
-                }
-                maDocGia = maDocGia.trim();
+                String maDocGia = txtMaDocGia.getText().trim();
                 if (maDocGia.isBlank()) {
                     lblThongBao.setText("Mã độc giả không được để trống");
                     return;
@@ -143,25 +167,77 @@ public class MenuThuThu extends JFrame {
                         txtMaSach.getText().trim(),
                         maDocGia,
                         thuThuDangNhap.getMaNguoiDung(),
-                        7
+                        docSoNgayMuonHopLe(txtSoNgayMuon.getText().trim(), "Số ngày mượn"),
+                        docNgayHoacMacDinh(txtNgayMuon.getText().trim(), LocalDate.now(), "Ngày mượn")
                 );
                 lblThongBao.setText(thongBao);
                 capNhatBangMuonTra(modelPhieu);
+                lamMoiBangSach.run();
+
+                String maPhieuVuaMuon = txtMaPhieuMuon.getText().trim();
+                if (thongBao.startsWith("Mượn sách thành công")) {
+                    txtMaPhieuMuon.setText(goiYMaPhieuMuonTiepTheo());
+                }
+
+                PhieuMuon phieuMuon = timPhieuTheoMa(maPhieuVuaMuon);
+                if (phieuMuon != null) {
+                    txtNgayMuon.setText(chuyenNgay(phieuMuon.getNgayMuon()));
+                    txtSoNgayMuon.setText(String.valueOf(tinhSoNgayMuon(phieuMuon)));
+                }
+
                 Sach sach = quanLySach.timSachTheoMa(txtMaSach.getText().trim());
                 txtTenSach.setText(sach == null ? "" : sach.getTenSach());
             } catch (Exception ex) {
-                lblThongBao.setText("Dữ liệu không hợp lệ");
+                lblThongBao.setText(ex.getMessage() == null ? "Dữ liệu không hợp lệ" : ex.getMessage());
             }
         });
 
         btnTra.addActionListener(e -> {
             String thongBao = quanLyPhieuMuon.traSach(txtMaPhieuMuon.getText().trim());
+
             lblThongBao.setText(thongBao);
             capNhatBangMuonTra(modelPhieu);
+            lamMoiBangSach.run();
+        });
 
-            PhieuMuon phieuMuon = timPhieuTheoMa(txtMaPhieuMuon.getText().trim());
-            if (phieuMuon != null) {
-                txtNgayTra.setText(chuyenNgay(phieuMuon.getNgayTra()));
+        btnCapNhat.addActionListener(e -> {
+            try {
+                String thongBao = quanLyPhieuMuon.capNhatPhieuMuon(
+                        txtMaPhieuMuon.getText().trim(),
+                        docNgayHoacMacDinh(txtNgayMuon.getText().trim(), LocalDate.now(), "Ngày mượn"),
+                    docSoNgayMuonHopLe(txtSoNgayMuon.getText().trim(), "Số ngày mượn")
+                );
+                lblThongBao.setText(thongBao);
+                capNhatBangMuonTra(modelPhieu);
+                lamMoiBangSach.run();
+            } catch (IllegalArgumentException ex) {
+                lblThongBao.setText(ex.getMessage());
+            }
+        });
+
+        btnXoaPhieu.addActionListener(e -> {
+            int xacNhan = JOptionPane.showConfirmDialog(
+                    this,
+                    "Bạn có chắc muốn xóa phiếu mượn này?",
+                    "Xác nhận xóa",
+                    JOptionPane.YES_NO_OPTION
+            );
+            if (xacNhan != JOptionPane.YES_OPTION) {
+                return;
+            }
+
+            String thongBao = quanLyPhieuMuon.xoaPhieuMuon(txtMaPhieuMuon.getText().trim());
+            lblThongBao.setText(thongBao);
+            capNhatBangMuonTra(modelPhieu);
+            lamMoiBangSach.run();
+            if (thongBao.startsWith("Xóa")) {
+                txtMaPhieuMuon.setText(goiYMaPhieuMuonTiepTheo());
+                txtMaDocGia.setText("");
+                txtMaSach.setText("");
+                txtTenSach.setText("");
+                txtNgayMuon.setText("");
+                txtSoNgayMuon.setText("7");
+                bangPhieu.clearSelection();
             }
         });
 
@@ -171,11 +247,12 @@ public class MenuThuThu extends JFrame {
         });
 
         btnXoaForm.addActionListener(e -> {
-            txtMaPhieuMuon.setText("");
+            txtMaPhieuMuon.setText(goiYMaPhieuMuonTiepTheo());
+            txtMaDocGia.setText("");
             txtMaSach.setText("");
             txtTenSach.setText("");
             txtNgayMuon.setText("");
-            txtNgayTra.setText("");
+            txtSoNgayMuon.setText("7");
             lblThongBao.setText(" ");
             bangPhieu.clearSelection();
         });
@@ -183,6 +260,8 @@ public class MenuThuThu extends JFrame {
         JPanel panelNut = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         panelNut.add(btnMuon);
         panelNut.add(btnTra);
+        panelNut.add(btnCapNhat);
+        panelNut.add(btnXoaPhieu);
         panelNut.add(btnLamMoi);
         panelNut.add(btnXoaForm);
 
@@ -193,7 +272,11 @@ public class MenuThuThu extends JFrame {
 
         JPanel panelDuoi = new JPanel(new BorderLayout(8, 8));
         panelDuoi.add(new JScrollPane(bangPhieu), BorderLayout.CENTER);
-        panelDuoi.add(lblThongBao, BorderLayout.SOUTH);
+
+        JPanel panelTrangThaiDuoi = new JPanel(new BorderLayout(8, 0));
+        panelTrangThaiDuoi.add(lblThongBao, BorderLayout.WEST);
+        panelTrangThaiDuoi.add(lblThongKeMuonTra, BorderLayout.EAST);
+        panelDuoi.add(panelTrangThaiDuoi, BorderLayout.SOUTH);
 
         panel.add(panelTren, BorderLayout.NORTH);
         panel.add(panelDuoi, BorderLayout.CENTER);
@@ -215,6 +298,8 @@ public class MenuThuThu extends JFrame {
         JTextField txtTongSoLuong = new JTextField(5);
         JTextField txtSoLuongCon = new JTextField(5);
         JTextField txtTimMaSach = new JTextField(10);
+        txtMaSach.setText(goiYMaSachTiepTheo());
+        txtSoLuongCon.setEditable(false);
 
         JPanel form = new JPanel(new GridLayout(4, 4, 8, 8));
         form.add(new JLabel("Mã sách"));
@@ -234,13 +319,11 @@ public class MenuThuThu extends JFrame {
         form.add(new JLabel("Số lượng còn"));
         form.add(txtSoLuongCon);
 
-        JPanel panelTimKiem = new JPanel(new GridLayout(4, 1, 6, 6));
-        panelTimKiem.add(new JLabel("Tìm kiếm theo mã sách", SwingConstants.CENTER));
+        JPanel panelTimKiem = new JPanel(new GridLayout(3, 1, 6, 6));
+        panelTimKiem.add(new JLabel("Lọc theo mã/tên sách", SwingConstants.CENTER));
         panelTimKiem.add(txtTimMaSach);
 
-        JButton btnTim = new JButton("Tìm kiếm");
         JButton btnHienThi = new JButton("Hiển thị");
-        panelTimKiem.add(btnTim);
         panelTimKiem.add(btnHienThi);
 
         JPanel panelTren = new JPanel(new BorderLayout(10, 10));
@@ -250,6 +333,7 @@ public class MenuThuThu extends JFrame {
         DefaultTableModel model = new DefaultTableModel(
             new String[]{"Mã", "Tên sách", "Tác giả", "Thể loại", "Nhà XB", "Năm XB", "Tổng SL", "SL còn"}, 0);
         JTable bangKetQua = new JTable(model);
+        lamMoiBangSach = () -> capNhatBangSach(model);
 
         JButton btnThem = new JButton("Thêm");
         JButton btnSua = new JButton("Sửa");
@@ -272,6 +356,41 @@ public class MenuThuThu extends JFrame {
             txtNamXuatBan.setText(String.valueOf(model.getValueAt(dong, 5)));
             txtTongSoLuong.setText(String.valueOf(model.getValueAt(dong, 6)));
             txtSoLuongCon.setText(String.valueOf(model.getValueAt(dong, 7)));
+            capNhatSoLuongConTuDong(txtMaSach, txtTongSoLuong, txtSoLuongCon);
+        });
+
+        txtMaSach.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                capNhatSoLuongConTuDong(txtMaSach, txtTongSoLuong, txtSoLuongCon);
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                capNhatSoLuongConTuDong(txtMaSach, txtTongSoLuong, txtSoLuongCon);
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                capNhatSoLuongConTuDong(txtMaSach, txtTongSoLuong, txtSoLuongCon);
+            }
+        });
+
+        txtTongSoLuong.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                capNhatSoLuongConTuDong(txtMaSach, txtTongSoLuong, txtSoLuongCon);
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                capNhatSoLuongConTuDong(txtMaSach, txtTongSoLuong, txtSoLuongCon);
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                capNhatSoLuongConTuDong(txtMaSach, txtTongSoLuong, txtSoLuongCon);
+            }
         });
 
         btnThem.addActionListener(e -> {
@@ -284,10 +403,12 @@ public class MenuThuThu extends JFrame {
                         txtNhaXuatBan.getText().trim(),
                         Integer.parseInt(txtNamXuatBan.getText().trim()),
                         Integer.parseInt(txtTongSoLuong.getText().trim()),
-                        Integer.parseInt(txtSoLuongCon.getText().trim())
+                        tinhSoLuongCon(txtMaSach.getText().trim(), Integer.parseInt(txtTongSoLuong.getText().trim()))
                 );
                 quanLySach.themSach(sach);
                 capNhatBangSach(model);
+                txtMaSach.setText(goiYMaSachTiepTheo());
+                capNhatSoLuongConTuDong(txtMaSach, txtTongSoLuong, txtSoLuongCon);
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "Dữ liệu sách không hợp lệ");
             }
@@ -303,10 +424,11 @@ public class MenuThuThu extends JFrame {
                         txtNhaXuatBan.getText().trim(),
                         Integer.parseInt(txtNamXuatBan.getText().trim()),
                         Integer.parseInt(txtTongSoLuong.getText().trim()),
-                        Integer.parseInt(txtSoLuongCon.getText().trim())
+                        tinhSoLuongCon(txtMaSach.getText().trim(), Integer.parseInt(txtTongSoLuong.getText().trim()))
                 );
                 if (quanLySach.capNhatSach(sach)) {
                     capNhatBangSach(model);
+                    capNhatSoLuongConTuDong(txtMaSach, txtTongSoLuong, txtSoLuongCon);
                 } else {
                     JOptionPane.showMessageDialog(this, "Không tìm thấy mã sách để sửa");
                 }
@@ -319,40 +441,39 @@ public class MenuThuThu extends JFrame {
             String maSach = txtMaSach.getText().trim();
             if (quanLySach.xoaSach(maSach)) {
                 capNhatBangSach(model);
+                txtMaSach.setText(goiYMaSachTiepTheo());
             } else {
                 JOptionPane.showMessageDialog(this, "Không tìm thấy mã sách để xóa");
             }
         });
 
-        btnLamMoi.addActionListener(e -> capNhatBangSach(model));
-
-        btnTim.addActionListener(e -> {
-            String maSach = txtTimMaSach.getText().trim();
-            model.setRowCount(0);
-            if (maSach.isBlank()) {
-                JOptionPane.showMessageDialog(this, "Vui lòng nhập mã sách cần tìm");
-                return;
-            }
-
-            Sach sach = quanLySach.timSachTheoMa(maSach);
-            if (sach == null) {
-                JOptionPane.showMessageDialog(this, "Không tìm thấy sách");
-                return;
-            }
-
-            model.addRow(new Object[]{
-                    sach.getMaSach(),
-                    sach.getTenSach(),
-                    sach.getTacGia(),
-                    sach.getTheLoai(),
-                    sach.getNhaXuatBan(),
-                    sach.getNamXuatBan(),
-                    sach.getTongSoLuong(),
-                    sach.getSoLuongCon()
-            });
+        btnLamMoi.addActionListener(e -> {
+            capNhatBangSach(model);
+            txtMaSach.setText(goiYMaSachTiepTheo());
+            capNhatSoLuongConTuDong(txtMaSach, txtTongSoLuong, txtSoLuongCon);
         });
 
-        btnHienThi.addActionListener(e -> capNhatBangSach(model));
+        txtTimMaSach.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                locBangSachTheoTuKhoa(model, txtTimMaSach.getText().trim());
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                locBangSachTheoTuKhoa(model, txtTimMaSach.getText().trim());
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                locBangSachTheoTuKhoa(model, txtTimMaSach.getText().trim());
+            }
+        });
+
+        btnHienThi.addActionListener(e -> {
+            txtTimMaSach.setText("");
+            capNhatBangSach(model);
+        });
 
         JPanel panelNut = new JPanel(new FlowLayout(FlowLayout.LEFT));
         panelNut.add(btnThem);
@@ -360,9 +481,13 @@ public class MenuThuThu extends JFrame {
         panelNut.add(btnXoa);
         panelNut.add(btnLamMoi);
 
+        JPanel panelDuoi = new JPanel(new BorderLayout(8, 0));
+        panelDuoi.add(panelNut, BorderLayout.WEST);
+        panelDuoi.add(lblThongKeSach, BorderLayout.EAST);
+
         panel.add(panelTren, BorderLayout.NORTH);
         panel.add(new JScrollPane(bangKetQua), BorderLayout.CENTER);
-        panel.add(panelNut, BorderLayout.SOUTH);
+        panel.add(panelDuoi, BorderLayout.SOUTH);
 
         capNhatBangSach(model);
         return panel;
@@ -377,6 +502,7 @@ public class MenuThuThu extends JFrame {
         JTextField txtSoDienThoai = new JTextField(12);
         JTextField txtEmail = new JTextField(15);
         JTextField txtDiaChi = new JTextField(20);
+        txtMaDocGia.setText(goiYMaDocGiaTiepTheo());
 
         JPanel form = new JPanel(new GridLayout(3, 4, 8, 8));
         form.add(new JLabel("Mã độc giả"));
@@ -424,6 +550,7 @@ public class MenuThuThu extends JFrame {
             );
             quanLyDocGia.themDocGia(docGia);
             capNhatBangDocGia(model);
+            txtMaDocGia.setText(goiYMaDocGiaTiepTheo());
         });
 
         btnSua.addActionListener(e -> {
@@ -444,12 +571,16 @@ public class MenuThuThu extends JFrame {
         btnXoa.addActionListener(e -> {
             if (quanLyDocGia.xoaDocGia(txtMaDocGia.getText().trim())) {
                 capNhatBangDocGia(model);
+                txtMaDocGia.setText(goiYMaDocGiaTiepTheo());
             } else {
                 JOptionPane.showMessageDialog(this, "Không tìm thấy độc giả để xóa");
             }
         });
 
-        btnLamMoi.addActionListener(e -> capNhatBangDocGia(model));
+        btnLamMoi.addActionListener(e -> {
+            capNhatBangDocGia(model);
+            txtMaDocGia.setText(goiYMaDocGiaTiepTheo());
+        });
 
         JPanel panelNut = new JPanel(new FlowLayout(FlowLayout.LEFT));
         panelNut.add(btnThem);
@@ -457,9 +588,13 @@ public class MenuThuThu extends JFrame {
         panelNut.add(btnXoa);
         panelNut.add(btnLamMoi);
 
+        JPanel panelDuoi = new JPanel(new BorderLayout(8, 0));
+        panelDuoi.add(panelNut, BorderLayout.WEST);
+        panelDuoi.add(lblThongKeDocGia, BorderLayout.EAST);
+
         panel.add(form, BorderLayout.NORTH);
         panel.add(new JScrollPane(bangDocGia), BorderLayout.CENTER);
-        panel.add(panelNut, BorderLayout.SOUTH);
+        panel.add(panelDuoi, BorderLayout.SOUTH);
 
         capNhatBangDocGia(model);
         return panel;
@@ -467,10 +602,21 @@ public class MenuThuThu extends JFrame {
 
     private void capNhatBangMuonTra(DefaultTableModel model) {
         model.setRowCount(0);
+        int soDangMuon = 0;
+        int soDaTra = 0;
         for (PhieuMuon phieuMuon : quanLyPhieuMuon.layDanhSachPhieuMuon()) {
             Sach sach = quanLySach.timSachTheoMa(phieuMuon.getMaSach());
             String tenSach = sach == null ? "" : sach.getTenSach();
-            long soNgayMuon = phieuMuon.getHanTra().toEpochDay() - phieuMuon.getNgayMuon().toEpochDay();
+            long soNgayMuon = tinhSoNgayMuon(phieuMuon);
+            long soNgayConLai = "DA_TRA".equals(phieuMuon.getTrangThai())
+                    ? 0
+                    : phieuMuon.getHanTra().toEpochDay() - LocalDate.now().toEpochDay();
+
+            if ("DA_TRA".equals(phieuMuon.getTrangThai())) {
+                soDaTra++;
+            } else if ("DANG_MUON".equals(phieuMuon.getTrangThai())) {
+                soDangMuon++;
+            }
 
             model.addRow(new Object[]{
                     phieuMuon.getMaPhieuMuon(),
@@ -478,11 +624,15 @@ public class MenuThuThu extends JFrame {
                     phieuMuon.getMaSach(),
                     tenSach,
                     soNgayMuon,
+                    soNgayConLai,
                     chuyenNgay(phieuMuon.getNgayMuon()),
                     chuyenNgay(phieuMuon.getNgayTra()),
                     phieuMuon.getTrangThai()
             });
         }
+        lblThongKeMuonTra.setText("Tổng phiếu: " + model.getRowCount()
+                + " | Đang mượn: " + soDangMuon
+                + " | Đã trả: " + soDaTra);
     }
 
     private JPanel taoDongNhap(String nhan, JTextField oNhap) {
@@ -504,7 +654,131 @@ public class MenuThuThu extends JFrame {
     }
 
     private String chuyenNgay(LocalDate ngay) {
-        return ngay == null ? "" : ngay.toString();
+        return ngay == null ? "" : ngay.format(DINH_DANG_NGAY);
+    }
+
+    private LocalDate docNgayHoacMacDinh(String giaTri, LocalDate macDinh, String tenTruong) {
+        if (giaTri == null || giaTri.isBlank()) {
+            return macDinh;
+        }
+        try {
+            return LocalDate.parse(giaTri.trim(), DINH_DANG_NGAY);
+        } catch (DateTimeParseException ex) {
+            throw new IllegalArgumentException(tenTruong + " không đúng định dạng dd/MM/yyyy");
+        }
+    }
+
+    private LocalDate docNgayHoacNull(String giaTri, String tenTruong) {
+        if (giaTri == null || giaTri.isBlank()) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(giaTri.trim(), DINH_DANG_NGAY);
+        } catch (DateTimeParseException ex) {
+            throw new IllegalArgumentException(tenTruong + " không đúng định dạng dd/MM/yyyy");
+        }
+    }
+
+    private int docSoNgayMuonHopLe(String giaTri, String tenTruong) {
+        if (giaTri == null || giaTri.isBlank()) {
+            return 7;
+        }
+
+        try {
+            int soNgay = Integer.parseInt(giaTri.trim());
+            if (soNgay <= 0) {
+                throw new IllegalArgumentException(tenTruong + " phải lớn hơn 0");
+            }
+            return soNgay;
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException(tenTruong + " phải là số nguyên");
+        }
+    }
+
+    private long tinhSoNgayMuon(PhieuMuon phieuMuon) {
+        return phieuMuon.getHanTra().toEpochDay() - phieuMuon.getNgayMuon().toEpochDay();
+    }
+
+    private void capNhatTenSachTheoMa(JTextField txtMaSach, JTextField txtTenSach) {
+        Sach sach = quanLySach.timSachTheoMa(txtMaSach.getText().trim());
+        txtTenSach.setText(sach == null ? "" : sach.getTenSach());
+    }
+
+    private void batTuDongGoiYNgayMuon(JTextField txtNgayMuon) {
+        String[] goiYGanNhat = {goiYNgayMuonHienTai()};
+        txtNgayMuon.setText(goiYGanNhat[0]);
+
+        txtNgayMuon.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (txtNgayMuon.getText().trim().isBlank()) {
+                    txtNgayMuon.setText(goiYNgayMuonHienTai());
+                }
+            }
+        });
+
+        Timer boDem = new Timer(1000, e -> {
+            String goiYMoi = goiYNgayMuonHienTai();
+            String giaTriDangNhap = txtNgayMuon.getText().trim();
+            if (!txtNgayMuon.hasFocus() && (giaTriDangNhap.isBlank() || giaTriDangNhap.equals(goiYGanNhat[0]))) {
+                txtNgayMuon.setText(goiYMoi);
+            }
+            goiYGanNhat[0] = goiYMoi;
+        });
+        boDem.start();
+    }
+
+    private String goiYNgayMuonHienTai() {
+        return LocalDate.now().format(DINH_DANG_NGAY);
+    }
+
+    private String goiYMaPhieuMuonTiepTheo() {
+        java.util.List<String> danhSachMa = new java.util.ArrayList<>();
+        for (PhieuMuon phieuMuon : quanLyPhieuMuon.layDanhSachPhieuMuon()) {
+            danhSachMa.add(phieuMuon.getMaPhieuMuon());
+        }
+        return String.format("PM%03d", timSoLonNhatTheoTienTo(danhSachMa, "PM") + 1);
+    }
+
+    private String goiYMaSachTiepTheo() {
+        java.util.List<String> danhSachMa = new java.util.ArrayList<>();
+        for (Sach sach : quanLySach.layTatCaSach()) {
+            danhSachMa.add(sach.getMaSach());
+        }
+        return String.format("S%03d", timSoLonNhatTheoTienTo(danhSachMa, "S") + 1);
+    }
+
+    private String goiYMaDocGiaTiepTheo() {
+        java.util.List<String> danhSachMa = new java.util.ArrayList<>();
+        for (DocGia docGia : quanLyDocGia.layTatCaDocGia()) {
+            danhSachMa.add(docGia.getMaDocGia());
+        }
+        return String.format("DG%03d", timSoLonNhatTheoTienTo(danhSachMa, "DG") + 1);
+    }
+
+    private int timSoLonNhatTheoTienTo(java.util.List<String> danhSachMa, String tienTo) {
+        int soLonNhat = 0;
+        for (String ma : danhSachMa) {
+            if (ma == null) {
+                continue;
+            }
+
+            String maChuan = ma.trim().toUpperCase();
+            if (!maChuan.startsWith(tienTo) || maChuan.length() <= tienTo.length()) {
+                continue;
+            }
+
+            String phanSo = maChuan.substring(tienTo.length());
+            try {
+                int giaTri = Integer.parseInt(phanSo);
+                if (giaTri > soLonNhat) {
+                    soLonNhat = giaTri;
+                }
+            } catch (NumberFormatException ignored) {
+                // Bo qua ma khong theo dang tien to + so.
+            }
+        }
+        return soLonNhat;
     }
 
     private void capNhatBangDocGia(DefaultTableModel model) {
@@ -518,11 +792,46 @@ public class MenuThuThu extends JFrame {
                     docGia.getDiaChi()
             });
         }
+        lblThongKeDocGia.setText("Tổng độc giả: " + model.getRowCount());
     }
 
     private void capNhatBangSach(DefaultTableModel model) {
         model.setRowCount(0);
+        int tongSoLuong = 0;
+        int tongSoLuongCon = 0;
         for (Sach sach : quanLySach.layTatCaSach()) {
+            int soLuongCon = tinhSoLuongCon(sach.getMaSach(), sach.getTongSoLuong());
+            sach.setSoLuongCon(soLuongCon);
+            tongSoLuong += sach.getTongSoLuong();
+            tongSoLuongCon += soLuongCon;
+            model.addRow(new Object[]{
+                    sach.getMaSach(),
+                    sach.getTenSach(),
+                    sach.getTacGia(),
+                    sach.getTheLoai(),
+                    sach.getNhaXuatBan(),
+                    sach.getNamXuatBan(),
+                    sach.getTongSoLuong(),
+                    soLuongCon
+            });
+        }
+        lblThongKeSach.setText("Tổng đầu sách: " + model.getRowCount()
+                + " | Tổng SL: " + tongSoLuong
+                + " | SL còn: " + tongSoLuongCon);
+    }
+
+    private void locBangSachTheoTuKhoa(DefaultTableModel model, String tuKhoa) {
+        String key = tuKhoa == null ? "" : tuKhoa.trim().toLowerCase();
+        model.setRowCount(0);
+
+        for (Sach sach : quanLySach.layTatCaSach()) {
+            boolean khop = key.isBlank()
+                    || sach.getMaSach().toLowerCase().contains(key)
+                    || sach.getTenSach().toLowerCase().contains(key);
+            if (!khop) {
+                continue;
+            }
+
             model.addRow(new Object[]{
                     sach.getMaSach(),
                     sach.getTenSach(),
@@ -534,6 +843,31 @@ public class MenuThuThu extends JFrame {
                     sach.getSoLuongCon()
             });
         }
+    }
+
+    private void capNhatSoLuongConTuDong(JTextField txtMaSach, JTextField txtTongSoLuong, JTextField txtSoLuongCon) {
+        String maSach = txtMaSach.getText().trim();
+        String tongText = txtTongSoLuong.getText().trim();
+        if (tongText.isBlank()) {
+            txtSoLuongCon.setText("");
+            return;
+        }
+
+        try {
+            int tongSoLuong = Integer.parseInt(tongText);
+            if (tongSoLuong < 0) {
+                txtSoLuongCon.setText("");
+                return;
+            }
+            txtSoLuongCon.setText(String.valueOf(tinhSoLuongCon(maSach, tongSoLuong)));
+        } catch (NumberFormatException ex) {
+            txtSoLuongCon.setText("");
+        }
+    }
+
+    private int tinhSoLuongCon(String maSach, int tongSoLuong) {
+        int soLuongDangMuon = quanLyPhieuMuon.demSoLuongDangMuonTheoMaSach(maSach);
+        return Math.max(0, tongSoLuong - soLuongDangMuon);
     }
 
     public void hienThiMenu() {
