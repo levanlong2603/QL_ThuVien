@@ -43,16 +43,6 @@ public class QuanLySach {
         return null;
     }
 
-    public List<Sach> timSachTheoTen(String tuKhoa) {
-        List<Sach> ketQua = new ArrayList<>();
-        for (Sach sach : danhSachSach) {
-            if (sach.getTenSach().toLowerCase().contains(tuKhoa.toLowerCase())) {
-                ketQua.add(sach);
-            }
-        }
-        return ketQua;
-    }
-
     public List<Sach> layTatCaSach() {
         return danhSachSach;
     }

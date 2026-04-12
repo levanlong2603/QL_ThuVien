@@ -20,18 +20,6 @@ public class ThuThu extends NguoiDung {
         this.diaChi = diaChi;
     }
 
-    public String choMuonSach() {
-        return "Thu thu dang cho muon sach";
-    }
-
-    public String nhanTraSach() {
-        return "Thu thu dang nhan tra sach";
-    }
-
-    public String timKiemSach() {
-        return "Thu thu dang tim kiem sach";
-    }
-
     public String getSoDienThoai() {
         return soDienThoai;
     }

@@ -47,10 +47,6 @@ public class PhieuMuon {
         return ngayMuon;
     }
 
-    public void setNgayMuon(LocalDate ngayMuon) {
-        this.ngayMuon = ngayMuon;
-    }
-
     public LocalDate getHanTra() {
         return hanTra;
     }

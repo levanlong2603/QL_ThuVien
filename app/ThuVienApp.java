@@ -76,15 +76,26 @@ public class ThuVienApp {
 
         JTextField txtTenDangNhap = new JTextField();
         JPasswordField txtMatKhau = new JPasswordField();
-        Dimension kichThuocNhap = new Dimension(170, 30);
+        Dimension kichThuocNhap = new Dimension(185, 30);
         txtTenDangNhap.setPreferredSize(kichThuocNhap);
         txtMatKhau.setPreferredSize(kichThuocNhap);
 
-        JPanel panelForm = new JPanel(new GridLayout(2, 2, 8, 8));
-        panelForm.add(new JLabel("Tên đăng nhập"));
-        panelForm.add(txtTenDangNhap);
-        panelForm.add(new JLabel("Mật khẩu"));
-        panelForm.add(txtMatKhau);
+        JPanel panelForm = new JPanel(new GridLayout(2, 1, 0, 8));
+
+        JPanel dongTenDangNhap = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        JLabel lblTenDangNhap = new JLabel("Tên đăng nhập");
+        lblTenDangNhap.setPreferredSize(new Dimension(90, 30));
+        dongTenDangNhap.add(lblTenDangNhap);
+        dongTenDangNhap.add(txtTenDangNhap);
+
+        JPanel dongMatKhau = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        JLabel lblMatKhau = new JLabel("Mật khẩu");
+        lblMatKhau.setPreferredSize(new Dimension(90, 30));
+        dongMatKhau.add(lblMatKhau);
+        dongMatKhau.add(txtMatKhau);
+
+        panelForm.add(dongTenDangNhap);
+        panelForm.add(dongMatKhau);
 
         JButton btnDangNhap = new JButton("Đăng nhập");
         JLabel lblTrangThai = new JLabel(" ");
@@ -116,7 +127,7 @@ public class ThuVienApp {
                 MenuThuThu menuThuThu = new MenuThuThu(
                         thuThu,
                         quanLySach,
-                    quanLyDocGia,
+                        quanLyDocGia,
                         quanLyPhieuMuon,
                         this::hienThiMenuDangNhap
                 );

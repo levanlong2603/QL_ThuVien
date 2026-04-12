@@ -20,10 +20,6 @@ public abstract class NguoiDung {
         return this.tenDangNhap.equals(tenDangNhapNhapVao) && this.matKhau.equals(matKhauNhapVao);
     }
 
-    public void dangXuat() {
-        // Ban Swing nay chua dung session phuc tap, dang xuat duoc dieu huong o tang UI.
-    }
-
     public String getMaNguoiDung() {
         return maNguoiDung;
     }

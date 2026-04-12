@@ -2,9 +2,10 @@ $ErrorActionPreference = "Stop"
 
 Set-Location $PSScriptRoot
 
-if (-not (Test-Path "out")) {
-    New-Item -ItemType Directory -Path "out" | Out-Null
+if (Test-Path "out") {
+    Remove-Item -Path "out" -Recurse -Force
 }
+New-Item -ItemType Directory -Path "out" | Out-Null
 
 $dsFileJava = Get-ChildItem -Recurse -Filter "*.java" |
     Where-Object { $_.FullName -notmatch "\\out\\" } |

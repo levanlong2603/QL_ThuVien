@@ -93,15 +93,12 @@ public class QuanLyPhieuMuon {
         return "Không tìm thấy phiếu đang mượn";
     }
 
-    public String capNhatPhieuMuon(String maPhieuMuon, LocalDate ngayMuonMoi, LocalDate ngayTraMoi) {
+    public String capNhatPhieuMuon(String maPhieuMuon, int soNgayMuonMoi) {
         if (maPhieuMuon == null || maPhieuMuon.isBlank()) {
             return "Mã phiếu mượn không hợp lệ";
         }
-        if (ngayMuonMoi == null) {
-            return "Ngày mượn không hợp lệ";
-        }
-        if (ngayTraMoi != null && ngayTraMoi.isBefore(ngayMuonMoi)) {
-            return "Ngày trả không được nhỏ hơn ngày mượn";
+        if (soNgayMuonMoi <= 0) {
+            return "Số ngày mượn phải lớn hơn 0";
         }
 
         PhieuMuon phieuMuon = timPhieuTheoMa(maPhieuMuon);
@@ -113,53 +110,7 @@ public class QuanLyPhieuMuon {
             return "Không tìm thấy sách của phiếu mượn";
         }
 
-        String trangThaiCu = phieuMuon.getTrangThai();
-        String trangThaiMoi = ngayTraMoi == null ? "DANG_MUON" : "DA_TRA";
-        if (!trangThaiCu.equals(trangThaiMoi)) {
-            if ("DANG_MUON".equals(trangThaiCu) && "DA_TRA".equals(trangThaiMoi)) {
-                // Trang thai doi, so luong se duoc dong bo lai theo danh sach phieu.
-            } else if ("DA_TRA".equals(trangThaiCu) && "DANG_MUON".equals(trangThaiMoi)) {
-                if (!conSachDeChuyenSangDangMuon(phieuMuon.getMaSach())) {
-                    return "Không thể chuyển sang đang mượn vì sách đã hết";
-                }
-            }
-        }
-
-        long soNgayMuon = phieuMuon.getHanTra().toEpochDay() - phieuMuon.getNgayMuon().toEpochDay();
-        if (soNgayMuon <= 0) {
-            soNgayMuon = 7;
-        }
-
-        phieuMuon.setNgayMuon(ngayMuonMoi);
-        phieuMuon.setHanTra(ngayMuonMoi.plusDays(soNgayMuon));
-        phieuMuon.setNgayTra(ngayTraMoi);
-        phieuMuon.setTrangThai(trangThaiMoi);
-        dongBoSoLuongConTheoMaSach(phieuMuon.getMaSach());
-        return "Cập nhật phiếu mượn thành công";
-    }
-
-    public String capNhatPhieuMuon(String maPhieuMuon, LocalDate ngayMuonMoi, int soNgayMuonMoi) {
-        if (maPhieuMuon == null || maPhieuMuon.isBlank()) {
-            return "Mã phiếu mượn không hợp lệ";
-        }
-        if (ngayMuonMoi == null) {
-            return "Ngày mượn không hợp lệ";
-        }
-        if (soNgayMuonMoi <= 0) {
-            return "Số ngày mượn phải lớn hơn 0";
-        }
-
-        PhieuMuon phieuMuon = timPhieuTheoMa(maPhieuMuon);
-        if (phieuMuon == null) {
-            return "Không tìm thấy phiếu mượn";
-        }
-
-        if (phieuMuon.getNgayTra() != null && phieuMuon.getNgayTra().isBefore(ngayMuonMoi)) {
-            return "Ngày mượn không được lớn hơn ngày trả";
-        }
-
-        phieuMuon.setNgayMuon(ngayMuonMoi);
-        phieuMuon.setHanTra(ngayMuonMoi.plusDays(soNgayMuonMoi));
+        phieuMuon.setHanTra(phieuMuon.getNgayMuon().plusDays(soNgayMuonMoi));
         dongBoSoLuongConTheoMaSach(phieuMuon.getMaSach());
         return "Cập nhật phiếu mượn thành công";
     }
@@ -183,23 +134,8 @@ public class QuanLyPhieuMuon {
         return "Không tìm thấy phiếu mượn để xóa";
     }
 
-    public PhieuMuon timPhieuMuon(String maPhieuMuon) {
-        return timPhieuTheoMa(maPhieuMuon);
-    }
-
     public List<PhieuMuon> layDanhSachPhieuMuon() {
         return danhSachPhieuMuon;
-    }
-
-    public List<PhieuMuon> kiemTraQuaHan() {
-        List<PhieuMuon> danhSachQuaHan = new ArrayList<>();
-        LocalDate homNay = LocalDate.now();
-        for (PhieuMuon phieuMuon : danhSachPhieuMuon) {
-            if ("DANG_MUON".equals(phieuMuon.getTrangThai()) && phieuMuon.getHanTra().isBefore(homNay)) {
-                danhSachQuaHan.add(phieuMuon);
-            }
-        }
-        return danhSachQuaHan;
     }
 
     public int demSoLuongDangMuonTheoMaSach(String maSach) {
@@ -226,16 +162,6 @@ public class QuanLyPhieuMuon {
         int soLuongDangMuon = demSoLuongDangMuonTheoMaSach(maSach);
         int soLuongCon = Math.max(0, sach.getTongSoLuong() - soLuongDangMuon);
         sach.setSoLuongCon(soLuongCon);
-    }
-
-    private boolean conSachDeChuyenSangDangMuon(String maSach) {
-        Sach sach = quanLySach.timSachTheoMa(maSach);
-        if (sach == null) {
-            return false;
-        }
-
-        int soLuongDangMuon = demSoLuongDangMuonTheoMaSach(maSach);
-        return soLuongDangMuon < sach.getTongSoLuong();
     }
 
     private PhieuMuon timPhieuTheoMa(String maPhieuMuon) {

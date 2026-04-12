@@ -16,11 +16,8 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.FocusAdapter;
-import java.awt.event.FocusEvent;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 
 /**
  * Giao dien danh cho admin.
@@ -88,21 +85,28 @@ public class MenuAdmin extends JFrame {
         JTextField txtTenSach = new JTextField(18);
         JTextField txtNgayMuon = new JTextField(12);
         JTextField txtSoNgayMuon = new JTextField(12);
+        JTextField txtTimPhieu = taoOtimKiem(12, "Lọc phiếu theo mã/độc giả/sách");
 
         txtTenSach.setEditable(false);
+        txtNgayMuon.setEditable(false);
         txtMaPhieuMuon.setToolTipText("Mã được gợi ý tự động, bạn có thể sửa");
         txtMaPhieuMuon.setText(goiYMaPhieuMuonTiepTheo());
-        batTuDongGoiYNgayMuon(txtNgayMuon);
+        txtNgayMuon.setText(chuyenNgay(LocalDate.now()));
 
-        JPanel form = new JPanel(new GridLayout(4, 2, 10, 8));
+        JPanel form = new JPanel(new GridLayout(3, 2, 10, 8));
         form.add(taoDongNhap("Mã phiếu mượn", txtMaPhieuMuon));
         form.add(taoDongNhap("Mã độc giả", txtMaDocGia));
         form.add(taoDongNhap("Mã sách", txtMaSach));
         form.add(taoDongNhap("Tên sách", txtTenSach));
         form.add(taoDongNhap("Ngày mượn", txtNgayMuon));
         form.add(taoDongNhap("Số ngày mượn", txtSoNgayMuon));
-        form.add(new JLabel("Định dạng ngày: dd/MM/yyyy"));
-        form.add(new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0)));
+
+        JButton btnTimPhieu = new JButton("Tìm");
+        JPanel panelTimKiemPhieu = taoThanhTimKiem(btnTimPhieu, txtTimPhieu);
+
+        JPanel panelFormVaTimPhieu = new JPanel(new BorderLayout(10, 10));
+        panelFormVaTimPhieu.add(form, BorderLayout.CENTER);
+        panelFormVaTimPhieu.add(panelTimKiemPhieu, BorderLayout.EAST);
 
         txtSoNgayMuon.setText("7");
 
@@ -125,22 +129,10 @@ public class MenuAdmin extends JFrame {
         });
 
         txtMaSach.addActionListener(e -> capNhatTenSachTheoMa(txtMaSach, txtTenSach));
-        txtMaSach.getDocument().addDocumentListener(new DocumentListener() {
-            @Override
-            public void insertUpdate(DocumentEvent e) {
-                capNhatTenSachTheoMa(txtMaSach, txtTenSach);
-            }
+        ganLocTheoNhapLieu(txtMaSach, () -> capNhatTenSachTheoMa(txtMaSach, txtTenSach));
+        ganLocTheoNhapLieu(txtTimPhieu, () -> locBangPhieuMuonTheoTuKhoa(modelPhieu, txtTimPhieu.getText().trim()));
 
-            @Override
-            public void removeUpdate(DocumentEvent e) {
-                capNhatTenSachTheoMa(txtMaSach, txtTenSach);
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent e) {
-                capNhatTenSachTheoMa(txtMaSach, txtTenSach);
-            }
-        });
+        btnTimPhieu.addActionListener(e -> locBangPhieuMuonTheoTuKhoa(modelPhieu, txtTimPhieu.getText().trim()));
 
         JLabel lblThongBao = new JLabel(" ");
 
@@ -149,7 +141,6 @@ public class MenuAdmin extends JFrame {
         JButton btnCapNhat = new JButton("Cập nhật phiếu");
         JButton btnXoaPhieu = new JButton("Xóa phiếu");
         JButton btnLamMoi = new JButton("Làm mới");
-        JButton btnXoaForm = new JButton("Xóa nhập");
 
         JLabel lblThongTinNguoiDung = new JLabel("Admin: " + adminDangNhap.getMaNguoiDung()
                 + " - " + adminDangNhap.getTenNguoiDung());
@@ -173,11 +164,10 @@ public class MenuAdmin extends JFrame {
                         txtMaSach.getText().trim(),
                         maDocGia,
                         adminDangNhap.getMaNguoiDung(),
-                        docSoNgayMuonHopLe(txtSoNgayMuon.getText().trim(), "Số ngày mượn"),
-                        docNgayHoacMacDinh(txtNgayMuon.getText().trim(), LocalDate.now(), "Ngày mượn")
+                    docSoNgayMuonHopLe(txtSoNgayMuon.getText().trim(), "Số ngày mượn")
                 );
                 lblThongBao.setText(thongBao);
-                capNhatBangMuonTra(modelPhieu);
+                locBangPhieuMuonTheoTuKhoa(modelPhieu, txtTimPhieu.getText().trim());
                 lamMoiBangSach.run();
 
                 String maPhieuVuaMuon = txtMaPhieuMuon.getText().trim();
@@ -202,7 +192,7 @@ public class MenuAdmin extends JFrame {
             String thongBao = quanLyPhieuMuon.traSach(txtMaPhieuMuon.getText().trim());
 
             lblThongBao.setText(thongBao);
-            capNhatBangMuonTra(modelPhieu);
+            locBangPhieuMuonTheoTuKhoa(modelPhieu, txtTimPhieu.getText().trim());
             lamMoiBangSach.run();
         });
 
@@ -210,11 +200,10 @@ public class MenuAdmin extends JFrame {
             try {
                 String thongBao = quanLyPhieuMuon.capNhatPhieuMuon(
                         txtMaPhieuMuon.getText().trim(),
-                        docNgayHoacMacDinh(txtNgayMuon.getText().trim(), LocalDate.now(), "Ngày mượn"),
-                    docSoNgayMuonHopLe(txtSoNgayMuon.getText().trim(), "Số ngày mượn")
+                        docSoNgayMuonHopLe(txtSoNgayMuon.getText().trim(), "Số ngày mượn")
                 );
                 lblThongBao.setText(thongBao);
-                capNhatBangMuonTra(modelPhieu);
+                locBangPhieuMuonTheoTuKhoa(modelPhieu, txtTimPhieu.getText().trim());
                 lamMoiBangSach.run();
             } catch (IllegalArgumentException ex) {
                 lblThongBao.setText(ex.getMessage());
@@ -234,7 +223,7 @@ public class MenuAdmin extends JFrame {
 
             String thongBao = quanLyPhieuMuon.xoaPhieuMuon(txtMaPhieuMuon.getText().trim());
             lblThongBao.setText(thongBao);
-            capNhatBangMuonTra(modelPhieu);
+            locBangPhieuMuonTheoTuKhoa(modelPhieu, txtTimPhieu.getText().trim());
             lamMoiBangSach.run();
 
             if (thongBao.startsWith("Xóa")) {
@@ -242,26 +231,15 @@ public class MenuAdmin extends JFrame {
                 txtMaDocGia.setText("");
                 txtMaSach.setText("");
                 txtTenSach.setText("");
-                txtNgayMuon.setText("");
+                txtNgayMuon.setText(chuyenNgay(LocalDate.now()));
                 txtSoNgayMuon.setText("7");
                 bangPhieu.clearSelection();
             }
         });
 
         btnLamMoi.addActionListener(e -> {
-            capNhatBangMuonTra(modelPhieu);
+            locBangPhieuMuonTheoTuKhoa(modelPhieu, txtTimPhieu.getText().trim());
             lblThongBao.setText("Đã làm mới danh sách phiếu mượn/trả");
-        });
-
-        btnXoaForm.addActionListener(e -> {
-            txtMaPhieuMuon.setText(goiYMaPhieuMuonTiepTheo());
-            txtMaDocGia.setText("");
-            txtMaSach.setText("");
-            txtTenSach.setText("");
-            txtNgayMuon.setText("");
-            txtSoNgayMuon.setText("7");
-            lblThongBao.setText(" ");
-            bangPhieu.clearSelection();
         });
 
         JPanel panelNut = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
@@ -270,12 +248,10 @@ public class MenuAdmin extends JFrame {
         panelNut.add(btnCapNhat);
         panelNut.add(btnXoaPhieu);
         panelNut.add(btnLamMoi);
-        panelNut.add(btnXoaForm);
 
         JPanel panelTren = new JPanel(new BorderLayout(8, 8));
         panelTren.add(lblThongTinNguoiDung, BorderLayout.NORTH);
-        panelTren.add(form, BorderLayout.CENTER);
-        panelTren.add(panelNut, BorderLayout.SOUTH);
+        panelTren.add(panelFormVaTimPhieu, BorderLayout.CENTER);
 
         JPanel panelDuoi = new JPanel(new BorderLayout(8, 8));
         panelDuoi.add(new JScrollPane(bangPhieu), BorderLayout.CENTER);
@@ -283,7 +259,11 @@ public class MenuAdmin extends JFrame {
         JPanel panelTrangThaiDuoi = new JPanel(new BorderLayout(8, 0));
         panelTrangThaiDuoi.add(lblThongBao, BorderLayout.WEST);
         panelTrangThaiDuoi.add(lblThongKeMuonTra, BorderLayout.EAST);
-        panelDuoi.add(panelTrangThaiDuoi, BorderLayout.SOUTH);
+
+        JPanel panelChanDuoi = new JPanel(new BorderLayout(8, 0));
+        panelChanDuoi.add(panelNut, BorderLayout.WEST);
+        panelChanDuoi.add(panelTrangThaiDuoi, BorderLayout.CENTER);
+        panelDuoi.add(panelChanDuoi, BorderLayout.SOUTH);
 
         panel.add(panelTren, BorderLayout.NORTH);
         panel.add(panelDuoi, BorderLayout.CENTER);
@@ -301,19 +281,22 @@ public class MenuAdmin extends JFrame {
         JTextField txtSoDienThoai = new JTextField(12);
         JTextField txtEmail = new JTextField(15);
         JTextField txtDiaChi = new JTextField(20);
+        JTextField txtTimDocGia = taoOtimKiem(10, "Lọc theo mã/tên/SĐT");
         txtMaDocGia.setText(goiYMaDocGiaTiepTheo());
 
-        JPanel form = new JPanel(new GridLayout(3, 4, 8, 8));
-        form.add(new JLabel("Mã độc giả"));
-        form.add(txtMaDocGia);
-        form.add(new JLabel("Tên độc giả"));
-        form.add(txtTenDocGia);
-        form.add(new JLabel("Số điện thoại"));
-        form.add(txtSoDienThoai);
-        form.add(new JLabel("Email"));
-        form.add(txtEmail);
-        form.add(new JLabel("Địa chỉ"));
-        form.add(txtDiaChi);
+        JPanel form = new JPanel(new GridLayout(3, 2, 10, 8));
+        form.add(taoDongNhap("Mã độc giả", txtMaDocGia));
+        form.add(taoDongNhap("Tên độc giả", txtTenDocGia));
+        form.add(taoDongNhap("Số điện thoại", txtSoDienThoai));
+        form.add(taoDongNhap("Email", txtEmail));
+        form.add(taoDongNhap("Địa chỉ", txtDiaChi));
+
+        JButton btnTimDocGia = new JButton("Tìm");
+        JPanel panelTimKiemDocGia = taoThanhTimKiem(btnTimDocGia, txtTimDocGia);
+
+        JPanel panelTren = new JPanel(new BorderLayout(10, 10));
+        panelTren.add(form, BorderLayout.CENTER);
+        panelTren.add(panelTimKiemDocGia, BorderLayout.EAST);
 
         DefaultTableModel model = new DefaultTableModel(
                 new String[]{"Mã", "Tên", "SĐT", "Email", "Địa chỉ"}, 0);
@@ -334,6 +317,10 @@ public class MenuAdmin extends JFrame {
             txtDiaChi.setText(String.valueOf(model.getValueAt(dong, 4)));
         });
 
+        ganLocTheoNhapLieu(txtTimDocGia, () -> locBangDocGiaTheoTuKhoa(model, txtTimDocGia.getText().trim()));
+
+        btnTimDocGia.addActionListener(e -> locBangDocGiaTheoTuKhoa(model, txtTimDocGia.getText().trim()));
+
         JButton btnThem = new JButton("Thêm độc giả");
         JButton btnSua = new JButton("Sửa độc giả");
         JButton btnXoa = new JButton("Xóa độc giả");
@@ -348,7 +335,7 @@ public class MenuAdmin extends JFrame {
                     txtDiaChi.getText().trim()
             );
             quanLyDocGia.themDocGia(docGia);
-            capNhatBangDocGia(model);
+            locBangDocGiaTheoTuKhoa(model, txtTimDocGia.getText().trim());
             txtMaDocGia.setText(goiYMaDocGiaTiepTheo());
         });
 
@@ -361,7 +348,7 @@ public class MenuAdmin extends JFrame {
                     txtDiaChi.getText().trim()
             );
             if (quanLyDocGia.capNhatDocGia(docGia)) {
-                capNhatBangDocGia(model);
+                locBangDocGiaTheoTuKhoa(model, txtTimDocGia.getText().trim());
             } else {
                 JOptionPane.showMessageDialog(this, "Không tìm thấy độc giả để sửa");
             }
@@ -369,7 +356,7 @@ public class MenuAdmin extends JFrame {
 
         btnXoa.addActionListener(e -> {
             if (quanLyDocGia.xoaDocGia(txtMaDocGia.getText().trim())) {
-                capNhatBangDocGia(model);
+                locBangDocGiaTheoTuKhoa(model, txtTimDocGia.getText().trim());
                 txtMaDocGia.setText(goiYMaDocGiaTiepTheo());
             } else {
                 JOptionPane.showMessageDialog(this, "Không tìm thấy độc giả để xóa");
@@ -377,7 +364,7 @@ public class MenuAdmin extends JFrame {
         });
 
         btnLamMoi.addActionListener(e -> {
-            capNhatBangDocGia(model);
+            locBangDocGiaTheoTuKhoa(model, txtTimDocGia.getText().trim());
             txtMaDocGia.setText(goiYMaDocGiaTiepTheo());
         });
 
@@ -391,7 +378,7 @@ public class MenuAdmin extends JFrame {
         panelDuoi.add(panelNut, BorderLayout.WEST);
         panelDuoi.add(lblThongKeDocGia, BorderLayout.EAST);
 
-        panel.add(form, BorderLayout.NORTH);
+        panel.add(panelTren, BorderLayout.NORTH);
         panel.add(new JScrollPane(bangDocGia), BorderLayout.CENTER);
         panel.add(panelDuoi, BorderLayout.SOUTH);
 
@@ -411,26 +398,26 @@ public class MenuAdmin extends JFrame {
         JTextField txtNamXuatBan = new JTextField(5);
         JTextField txtTongSoLuong = new JTextField(5);
         JTextField txtSoLuongCon = new JTextField(5);
+        JTextField txtTimMaSach = taoOtimKiem(10, "Lọc theo mã/tên sách");
         txtMaSach.setText(goiYMaSachTiepTheo());
         txtSoLuongCon.setEditable(false);
 
-        JPanel form = new JPanel(new GridLayout(4, 4, 8, 8));
-        form.add(new JLabel("Mã sách"));
-        form.add(txtMaSach);
-        form.add(new JLabel("Tên sách"));
-        form.add(txtTenSach);
-        form.add(new JLabel("Tác giả"));
-        form.add(txtTacGia);
-        form.add(new JLabel("Thể loại"));
-        form.add(txtTheLoai);
-        form.add(new JLabel("Nhà xuất bản"));
-        form.add(txtNhaXuatBan);
-        form.add(new JLabel("Năm xuất bản"));
-        form.add(txtNamXuatBan);
-        form.add(new JLabel("Tổng số lượng"));
-        form.add(txtTongSoLuong);
-        form.add(new JLabel("Số lượng còn"));
-        form.add(txtSoLuongCon);
+        JPanel form = new JPanel(new GridLayout(4, 2, 10, 8));
+        form.add(taoDongNhap("Mã sách", txtMaSach));
+        form.add(taoDongNhap("Tên sách", txtTenSach));
+        form.add(taoDongNhap("Tác giả", txtTacGia));
+        form.add(taoDongNhap("Thể loại", txtTheLoai));
+        form.add(taoDongNhap("Nhà xuất bản", txtNhaXuatBan));
+        form.add(taoDongNhap("Năm xuất bản", txtNamXuatBan));
+        form.add(taoDongNhap("Tổng số lượng", txtTongSoLuong));
+        form.add(taoDongNhap("Số lượng còn", txtSoLuongCon));
+
+        JButton btnTimSach = new JButton("Tìm");
+        JPanel panelTimKiem = taoThanhTimKiem(btnTimSach, txtTimMaSach);
+
+        JPanel panelTren = new JPanel(new BorderLayout(10, 10));
+        panelTren.add(form, BorderLayout.CENTER);
+        panelTren.add(panelTimKiem, BorderLayout.EAST);
 
         DefaultTableModel model = new DefaultTableModel(
                 new String[]{"Mã", "Tên sách", "Tác giả", "Thể loại", "Nhà XB", "Năm XB", "Tổng SL", "SL còn"}, 0);
@@ -462,39 +449,11 @@ public class MenuAdmin extends JFrame {
             capNhatSoLuongConTuDong(txtMaSach, txtTongSoLuong, txtSoLuongCon);
         });
 
-        txtMaSach.getDocument().addDocumentListener(new DocumentListener() {
-            @Override
-            public void insertUpdate(DocumentEvent e) {
-                capNhatSoLuongConTuDong(txtMaSach, txtTongSoLuong, txtSoLuongCon);
-            }
+        ganLocTheoNhapLieu(txtMaSach, () -> capNhatSoLuongConTuDong(txtMaSach, txtTongSoLuong, txtSoLuongCon));
+        ganLocTheoNhapLieu(txtTongSoLuong, () -> capNhatSoLuongConTuDong(txtMaSach, txtTongSoLuong, txtSoLuongCon));
+        ganLocTheoNhapLieu(txtTimMaSach, () -> locBangSachTheoTuKhoa(model, txtTimMaSach.getText().trim()));
 
-            @Override
-            public void removeUpdate(DocumentEvent e) {
-                capNhatSoLuongConTuDong(txtMaSach, txtTongSoLuong, txtSoLuongCon);
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent e) {
-                capNhatSoLuongConTuDong(txtMaSach, txtTongSoLuong, txtSoLuongCon);
-            }
-        });
-
-        txtTongSoLuong.getDocument().addDocumentListener(new DocumentListener() {
-            @Override
-            public void insertUpdate(DocumentEvent e) {
-                capNhatSoLuongConTuDong(txtMaSach, txtTongSoLuong, txtSoLuongCon);
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent e) {
-                capNhatSoLuongConTuDong(txtMaSach, txtTongSoLuong, txtSoLuongCon);
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent e) {
-                capNhatSoLuongConTuDong(txtMaSach, txtTongSoLuong, txtSoLuongCon);
-            }
-        });
+        btnTimSach.addActionListener(e -> locBangSachTheoTuKhoa(model, txtTimMaSach.getText().trim()));
 
         btnThem.addActionListener(e -> {
             try {
@@ -509,7 +468,7 @@ public class MenuAdmin extends JFrame {
                         tinhSoLuongCon(txtMaSach.getText().trim(), Integer.parseInt(txtTongSoLuong.getText().trim()))
                 );
                 quanLySach.themSach(sach);
-                capNhatBangSach(model);
+                locBangSachTheoTuKhoa(model, txtTimMaSach.getText().trim());
                 txtMaSach.setText(goiYMaSachTiepTheo());
                 capNhatSoLuongConTuDong(txtMaSach, txtTongSoLuong, txtSoLuongCon);
             } catch (Exception ex) {
@@ -530,7 +489,7 @@ public class MenuAdmin extends JFrame {
                         tinhSoLuongCon(txtMaSach.getText().trim(), Integer.parseInt(txtTongSoLuong.getText().trim()))
                 );
                 if (quanLySach.capNhatSach(sach)) {
-                    capNhatBangSach(model);
+                    locBangSachTheoTuKhoa(model, txtTimMaSach.getText().trim());
                     capNhatSoLuongConTuDong(txtMaSach, txtTongSoLuong, txtSoLuongCon);
                 } else {
                     JOptionPane.showMessageDialog(this, "Không tìm thấy mã sách để sửa");
@@ -543,7 +502,7 @@ public class MenuAdmin extends JFrame {
         btnXoa.addActionListener(e -> {
             String maSach = txtMaSach.getText().trim();
             if (quanLySach.xoaSach(maSach)) {
-                capNhatBangSach(model);
+                locBangSachTheoTuKhoa(model, txtTimMaSach.getText().trim());
                 txtMaSach.setText(goiYMaSachTiepTheo());
             } else {
                 JOptionPane.showMessageDialog(this, "Không tìm thấy mã sách để xóa");
@@ -551,7 +510,7 @@ public class MenuAdmin extends JFrame {
         });
 
         btnLamMoi.addActionListener(e -> {
-            capNhatBangSach(model);
+            locBangSachTheoTuKhoa(model, txtTimMaSach.getText().trim());
             txtMaSach.setText(goiYMaSachTiepTheo());
             capNhatSoLuongConTuDong(txtMaSach, txtTongSoLuong, txtSoLuongCon);
         });
@@ -566,7 +525,7 @@ public class MenuAdmin extends JFrame {
         panelDuoi.add(panelNut, BorderLayout.WEST);
         panelDuoi.add(lblThongKeSach, BorderLayout.EAST);
 
-        panel.add(form, BorderLayout.NORTH);
+        panel.add(panelTren, BorderLayout.NORTH);
         panel.add(scrollPane, BorderLayout.CENTER);
         panel.add(panelDuoi, BorderLayout.SOUTH);
 
@@ -586,26 +545,26 @@ public class MenuAdmin extends JFrame {
         JTextField txtSoDienThoai = new JTextField(12);
         JTextField txtEmail = new JTextField(15);
         JTextField txtDiaChi = new JTextField(15);
+        JTextField txtTimTaiKhoan = taoOtimKiem(12, "Lọc theo mã/tên đăng nhập/vai trò");
         String[] goiYMaTaiKhoanGanNhat = {goiYMaTaiKhoanTheoVaiTro("Thủ thư")};
         txtMaNguoiDung.setText(goiYMaTaiKhoanGanNhat[0]);
 
-        JPanel form = new JPanel(new GridLayout(4, 4, 8, 8));
-        form.add(new JLabel("Mã tài khoản"));
-        form.add(txtMaNguoiDung);
-        form.add(new JLabel("Tên người dùng"));
-        form.add(txtTenNguoiDung);
-        form.add(new JLabel("Tên đăng nhập"));
-        form.add(txtTenDangNhap);
-        form.add(new JLabel("Mật khẩu"));
-        form.add(txtMatKhau);
-        form.add(new JLabel("Vai trò"));
-        form.add(cboVaiTro);
-        form.add(new JLabel("Số điện thoại"));
-        form.add(txtSoDienThoai);
-        form.add(new JLabel("Email"));
-        form.add(txtEmail);
-        form.add(new JLabel("Địa chỉ"));
-        form.add(txtDiaChi);
+        JPanel form = new JPanel(new GridLayout(4, 2, 10, 8));
+        form.add(taoDongNhap("Mã tài khoản", txtMaNguoiDung));
+        form.add(taoDongNhap("Tên người dùng", txtTenNguoiDung));
+        form.add(taoDongNhap("Tên đăng nhập", txtTenDangNhap));
+        form.add(taoDongNhap("Mật khẩu", txtMatKhau));
+        form.add(taoDongNhap("Vai trò", cboVaiTro));
+        form.add(taoDongNhap("Số điện thoại", txtSoDienThoai));
+        form.add(taoDongNhap("Email", txtEmail));
+        form.add(taoDongNhap("Địa chỉ", txtDiaChi));
+
+        JButton btnTimTaiKhoan = new JButton("Tìm");
+        JPanel panelTimKiemTaiKhoan = taoThanhTimKiem(btnTimTaiKhoan, txtTimTaiKhoan);
+
+        JPanel panelTren = new JPanel(new BorderLayout(10, 10));
+        panelTren.add(form, BorderLayout.CENTER);
+        panelTren.add(panelTimKiemTaiKhoan, BorderLayout.EAST);
 
         cboVaiTro.addActionListener(e -> {
             boolean laThuThu = "Thủ thư".equals(cboVaiTro.getSelectedItem());
@@ -656,6 +615,10 @@ public class MenuAdmin extends JFrame {
             txtDiaChi.setText(String.valueOf(model.getValueAt(dong, 7)));
         });
 
+        ganLocTheoNhapLieu(txtTimTaiKhoan, () -> locBangTaiKhoanTheoTuKhoa(model, txtTimTaiKhoan.getText().trim()));
+
+        btnTimTaiKhoan.addActionListener(e -> locBangTaiKhoanTheoTuKhoa(model, txtTimTaiKhoan.getText().trim()));
+
         btnThem.addActionListener(e -> {
             NguoiDung taiKhoan = taoTaiKhoanTuForm(
                     txtMaNguoiDung.getText().trim(),
@@ -673,7 +636,7 @@ public class MenuAdmin extends JFrame {
             }
 
             if (quanLyNguoiDung.themTaiKhoan(taiKhoan)) {
-                capNhatBangThuThu(model);
+                locBangTaiKhoanTheoTuKhoa(model, txtTimTaiKhoan.getText().trim());
                 String goiYMoi = goiYMaTaiKhoanTheoVaiTro(String.valueOf(cboVaiTro.getSelectedItem()));
                 txtMaNguoiDung.setText(goiYMoi);
                 goiYMaTaiKhoanGanNhat[0] = goiYMoi;
@@ -699,7 +662,7 @@ public class MenuAdmin extends JFrame {
             }
 
             if (quanLyNguoiDung.capNhatTaiKhoan(taiKhoan)) {
-                capNhatBangThuThu(model);
+                locBangTaiKhoanTheoTuKhoa(model, txtTimTaiKhoan.getText().trim());
             } else {
                 JOptionPane.showMessageDialog(this, "Không thể cập nhật tài khoản");
             }
@@ -713,7 +676,7 @@ public class MenuAdmin extends JFrame {
             }
 
             if (quanLyNguoiDung.xoaNguoiDung(maNguoiDung)) {
-                capNhatBangThuThu(model);
+                locBangTaiKhoanTheoTuKhoa(model, txtTimTaiKhoan.getText().trim());
                 String goiYMoi = goiYMaTaiKhoanTheoVaiTro(String.valueOf(cboVaiTro.getSelectedItem()));
                 txtMaNguoiDung.setText(goiYMoi);
                 goiYMaTaiKhoanGanNhat[0] = goiYMoi;
@@ -723,7 +686,7 @@ public class MenuAdmin extends JFrame {
         });
 
         btnLamMoi.addActionListener(e -> {
-            capNhatBangThuThu(model);
+            locBangTaiKhoanTheoTuKhoa(model, txtTimTaiKhoan.getText().trim());
             String goiYMoi = goiYMaTaiKhoanTheoVaiTro(String.valueOf(cboVaiTro.getSelectedItem()));
             txtMaNguoiDung.setText(goiYMoi);
             goiYMaTaiKhoanGanNhat[0] = goiYMoi;
@@ -739,7 +702,7 @@ public class MenuAdmin extends JFrame {
         panelDuoi.add(panelNut, BorderLayout.WEST);
         panelDuoi.add(lblThongKeTaiKhoan, BorderLayout.EAST);
 
-        panel.add(form, BorderLayout.NORTH);
+        panel.add(panelTren, BorderLayout.NORTH);
         panel.add(scrollPane, BorderLayout.CENTER);
         panel.add(panelDuoi, BorderLayout.SOUTH);
 
@@ -772,13 +735,72 @@ public class MenuAdmin extends JFrame {
                 + " | SL còn: " + tongSoLuongCon);
     }
 
+    private void locBangSachTheoTuKhoa(DefaultTableModel model, String tuKhoa) {
+        String key = tuKhoa == null ? "" : tuKhoa.trim().toLowerCase();
+        model.setRowCount(0);
+        int tongSoLuong = 0;
+        int tongSoLuongCon = 0;
+
+        for (Sach sach : quanLySach.layTatCaSach()) {
+            boolean khop = key.isBlank()
+                    || sach.getMaSach().toLowerCase().contains(key)
+                    || sach.getTenSach().toLowerCase().contains(key);
+            if (!khop) {
+                continue;
+            }
+
+            int soLuongCon = tinhSoLuongCon(sach.getMaSach(), sach.getTongSoLuong());
+            sach.setSoLuongCon(soLuongCon);
+            tongSoLuong += sach.getTongSoLuong();
+            tongSoLuongCon += soLuongCon;
+            model.addRow(new Object[]{
+                    sach.getMaSach(),
+                    sach.getTenSach(),
+                    sach.getTacGia(),
+                    sach.getTheLoai(),
+                    sach.getNhaXuatBan(),
+                    sach.getNamXuatBan(),
+                    sach.getTongSoLuong(),
+                    soLuongCon
+            });
+        }
+
+        lblThongKeSach.setText("Tổng đầu sách: " + model.getRowCount()
+                + " | Tổng SL: " + tongSoLuong
+                + " | SL còn: " + tongSoLuongCon);
+    }
+
     private void capNhatBangMuonTra(DefaultTableModel model) {
+        locBangPhieuMuonTheoTuKhoa(model, "");
+    }
+
+    private void locBangPhieuMuonTheoTuKhoa(DefaultTableModel model, String tuKhoa) {
+        String key = tuKhoa == null ? "" : tuKhoa.trim().toLowerCase();
         model.setRowCount(0);
         int soDangMuon = 0;
         int soDaTra = 0;
         for (PhieuMuon phieuMuon : quanLyPhieuMuon.layDanhSachPhieuMuon()) {
             Sach sach = quanLySach.timSachTheoMa(phieuMuon.getMaSach());
             String tenSach = sach == null ? "" : sach.getTenSach();
+            String ngayMuon = chuyenNgay(phieuMuon.getNgayMuon());
+            String ngayTra = chuyenNgay(phieuMuon.getNgayTra());
+            String maPhieu = phieuMuon.getMaPhieuMuon();
+            String maDocGia = phieuMuon.getMaDocGia();
+            String maSach = phieuMuon.getMaSach();
+            String trangThai = phieuMuon.getTrangThai();
+
+            boolean khop = key.isBlank()
+                    || maPhieu.toLowerCase().contains(key)
+                    || maDocGia.toLowerCase().contains(key)
+                    || maSach.toLowerCase().contains(key)
+                    || tenSach.toLowerCase().contains(key)
+                    || trangThai.toLowerCase().contains(key)
+                    || ngayMuon.toLowerCase().contains(key)
+                    || ngayTra.toLowerCase().contains(key);
+            if (!khop) {
+                continue;
+            }
+
             long soNgayMuon = tinhSoNgayMuon(phieuMuon);
             long soNgayConLai = "DA_TRA".equals(phieuMuon.getTrangThai())
                     ? 0
@@ -791,15 +813,15 @@ public class MenuAdmin extends JFrame {
             }
 
             model.addRow(new Object[]{
-                    phieuMuon.getMaPhieuMuon(),
-                    phieuMuon.getMaDocGia(),
-                    phieuMuon.getMaSach(),
+                    maPhieu,
+                    maDocGia,
+                    maSach,
                     tenSach,
                     soNgayMuon,
                     soNgayConLai,
-                    chuyenNgay(phieuMuon.getNgayMuon()),
-                    chuyenNgay(phieuMuon.getNgayTra()),
-                    phieuMuon.getTrangThai()
+                    ngayMuon,
+                    ngayTra,
+                    trangThai
             });
         }
         lblThongKeMuonTra.setText("Tổng phiếu: " + model.getRowCount()
@@ -807,13 +829,67 @@ public class MenuAdmin extends JFrame {
                 + " | Đã trả: " + soDaTra);
     }
 
-    private JPanel taoDongNhap(String nhan, JTextField oNhap) {
+    private JPanel taoDongNhap(String nhan, JComponent oNhap) {
         JPanel dong = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
         JLabel lbl = new JLabel(nhan);
         lbl.setPreferredSize(new Dimension(95, 24));
         dong.add(lbl);
         dong.add(oNhap);
         return dong;
+    }
+
+    private JPanel taoThanhTimKiem(JButton btnTim, JTextField txtTimKiem) {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+
+        Dimension kichThuocNutMacDinh = btnTim.getPreferredSize();
+        Dimension kichThuocO = txtTimKiem.getPreferredSize();
+        int chieuCao = Math.max(24, Math.max(kichThuocO.height, kichThuocNutMacDinh.height));
+        int chieuRongNut = Math.max(58, kichThuocNutMacDinh.width + 4);
+        btnTim.setPreferredSize(new Dimension(chieuRongNut, chieuCao));
+        txtTimKiem.setPreferredSize(new Dimension(Math.max(150, kichThuocO.width), chieuCao));
+
+        panel.add(btnTim);
+        panel.add(txtTimKiem);
+        return panel;
+    }
+
+    private JTextField taoOtimKiem(int soCot, String goiY) {
+        return new JTextField(soCot) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                if (!getText().isEmpty()) {
+                    return;
+                }
+
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setColor(Color.GRAY);
+                Insets insets = getInsets();
+                FontMetrics fm = g2.getFontMetrics();
+                int y = (getHeight() - fm.getHeight()) / 2 + fm.getAscent();
+                g2.drawString(goiY, insets.left + 4, y);
+                g2.dispose();
+            }
+        };
+    }
+
+    private void ganLocTheoNhapLieu(JTextField oNhap, Runnable hanhDong) {
+        oNhap.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                hanhDong.run();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                hanhDong.run();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                hanhDong.run();
+            }
+        });
     }
 
     private PhieuMuon timPhieuTheoMa(String maPhieuMuon) {
@@ -827,28 +903,6 @@ public class MenuAdmin extends JFrame {
 
     private String chuyenNgay(LocalDate ngay) {
         return ngay == null ? "" : ngay.format(DINH_DANG_NGAY);
-    }
-
-    private LocalDate docNgayHoacMacDinh(String giaTri, LocalDate macDinh, String tenTruong) {
-        if (giaTri == null || giaTri.isBlank()) {
-            return macDinh;
-        }
-        try {
-            return LocalDate.parse(giaTri.trim(), DINH_DANG_NGAY);
-        } catch (DateTimeParseException ex) {
-            throw new IllegalArgumentException(tenTruong + " không đúng định dạng dd/MM/yyyy");
-        }
-    }
-
-    private LocalDate docNgayHoacNull(String giaTri, String tenTruong) {
-        if (giaTri == null || giaTri.isBlank()) {
-            return null;
-        }
-        try {
-            return LocalDate.parse(giaTri.trim(), DINH_DANG_NGAY);
-        } catch (DateTimeParseException ex) {
-            throw new IllegalArgumentException(tenTruong + " không đúng định dạng dd/MM/yyyy");
-        }
     }
 
     private int docSoNgayMuonHopLe(String giaTri, String tenTruong) {
@@ -874,34 +928,6 @@ public class MenuAdmin extends JFrame {
     private void capNhatTenSachTheoMa(JTextField txtMaSach, JTextField txtTenSach) {
         Sach sach = quanLySach.timSachTheoMa(txtMaSach.getText().trim());
         txtTenSach.setText(sach == null ? "" : sach.getTenSach());
-    }
-
-    private void batTuDongGoiYNgayMuon(JTextField txtNgayMuon) {
-        String[] goiYGanNhat = {goiYNgayMuonHienTai()};
-        txtNgayMuon.setText(goiYGanNhat[0]);
-
-        txtNgayMuon.addFocusListener(new FocusAdapter() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                if (txtNgayMuon.getText().trim().isBlank()) {
-                    txtNgayMuon.setText(goiYNgayMuonHienTai());
-                }
-            }
-        });
-
-        Timer boDem = new Timer(1000, e -> {
-            String goiYMoi = goiYNgayMuonHienTai();
-            String giaTriDangNhap = txtNgayMuon.getText().trim();
-            if (!txtNgayMuon.hasFocus() && (giaTriDangNhap.isBlank() || giaTriDangNhap.equals(goiYGanNhat[0]))) {
-                txtNgayMuon.setText(goiYMoi);
-            }
-            goiYGanNhat[0] = goiYMoi;
-        });
-        boDem.start();
-    }
-
-    private String goiYNgayMuonHienTai() {
-        return LocalDate.now().format(DINH_DANG_NGAY);
     }
 
     private String goiYMaPhieuMuonTiepTheo() {
@@ -969,20 +995,46 @@ public class MenuAdmin extends JFrame {
     }
 
     private void capNhatBangDocGia(DefaultTableModel model) {
+        locBangDocGiaTheoTuKhoa(model, "");
+    }
+
+    private void locBangDocGiaTheoTuKhoa(DefaultTableModel model, String tuKhoa) {
+        String key = tuKhoa == null ? "" : tuKhoa.trim().toLowerCase();
         model.setRowCount(0);
         for (DocGia docGia : quanLyDocGia.layTatCaDocGia()) {
+            String maDocGia = docGia.getMaDocGia();
+            String tenDocGia = docGia.getTenDocGia();
+            String soDienThoai = docGia.getSoDienThoai();
+            String email = docGia.getEmail();
+            String diaChi = docGia.getDiaChi();
+
+            boolean khop = key.isBlank()
+                    || maDocGia.toLowerCase().contains(key)
+                    || tenDocGia.toLowerCase().contains(key)
+                    || soDienThoai.toLowerCase().contains(key)
+                    || email.toLowerCase().contains(key)
+                    || diaChi.toLowerCase().contains(key);
+            if (!khop) {
+                continue;
+            }
+
             model.addRow(new Object[]{
-                    docGia.getMaDocGia(),
-                    docGia.getTenDocGia(),
-                    docGia.getSoDienThoai(),
-                    docGia.getEmail(),
-                    docGia.getDiaChi()
+                    maDocGia,
+                    tenDocGia,
+                    soDienThoai,
+                    email,
+                    diaChi
             });
         }
         lblThongKeDocGia.setText("Tổng độc giả: " + model.getRowCount());
     }
 
     private void capNhatBangThuThu(DefaultTableModel model) {
+        locBangTaiKhoanTheoTuKhoa(model, "");
+    }
+
+    private void locBangTaiKhoanTheoTuKhoa(DefaultTableModel model, String tuKhoa) {
+        String key = tuKhoa == null ? "" : tuKhoa.trim().toLowerCase();
         model.setRowCount(0);
         int soAdmin = 0;
         int soThuThu = 0;
@@ -995,16 +1047,36 @@ public class MenuAdmin extends JFrame {
                 soDienThoai = thuThu.getSoDienThoai();
                 email = thuThu.getEmail();
                 diaChi = thuThu.getDiaChi();
-                soThuThu++;
-            } else {
+            }
+
+            String maNguoiDung = nguoiDung.getMaNguoiDung();
+            String tenNguoiDung = nguoiDung.getTenNguoiDung();
+            String tenDangNhap = nguoiDung.getTenDangNhap();
+            String matKhau = nguoiDung.getMatKhau();
+
+            boolean khop = key.isBlank()
+                    || maNguoiDung.toLowerCase().contains(key)
+                    || tenNguoiDung.toLowerCase().contains(key)
+                    || tenDangNhap.toLowerCase().contains(key)
+                    || vaiTro.toLowerCase().contains(key)
+                    || soDienThoai.toLowerCase().contains(key)
+                    || email.toLowerCase().contains(key)
+                    || diaChi.toLowerCase().contains(key);
+            if (!khop) {
+                continue;
+            }
+
+            if ("Admin".equals(vaiTro)) {
                 soAdmin++;
+            } else {
+                soThuThu++;
             }
 
             model.addRow(new Object[]{
-                    nguoiDung.getMaNguoiDung(),
-                    nguoiDung.getTenNguoiDung(),
-                    nguoiDung.getTenDangNhap(),
-                    nguoiDung.getMatKhau(),
+                    maNguoiDung,
+                    tenNguoiDung,
+                    tenDangNhap,
+                    matKhau,
                     vaiTro,
                     soDienThoai,
                     email,
@@ -1056,10 +1128,6 @@ public class MenuAdmin extends JFrame {
 
     public void hienThiMenu() {
         setVisible(true);
-    }
-
-    public void xuLyLuaChon() {
-        // Xu ly lua chon da duoc map thong qua cac nut su kien Swing.
     }
 }
 
