@@ -44,4 +44,3 @@ public class ThuThu extends NguoiDung {
         this.diaChi = diaChi;
     }
 }
-
