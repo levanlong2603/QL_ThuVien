@@ -111,7 +111,12 @@ public class MenuAdmin extends JFrame {
         txtSoNgayMuon.setText("7");
 
         DefaultTableModel modelPhieu = new DefaultTableModel(
-            new String[]{"Mã phiếu", "Mã độc giả", "Mã sách", "Tên sách", "Số ngày mượn", "Số ngày còn lại", "Ngày mượn", "Ngày trả", "Trạng thái"}, 0);
+            new String[]{"Mã phiếu", "Mã độc giả", "Mã sách", "Tên sách", "Số ngày mượn", "Số ngày còn lại", "Ngày mượn", "Ngày trả", "Trạng thái"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
         JTable bangPhieu = new JTable(modelPhieu);
         bangPhieu.getSelectionModel().addListSelectionListener(e -> {
             if (e.getValueIsAdjusting()) {
@@ -138,7 +143,6 @@ public class MenuAdmin extends JFrame {
 
         JButton btnMuon = new JButton("Mượn sách");
         JButton btnTra = new JButton("Trả sách");
-        JButton btnCapNhat = new JButton("Cập nhật phiếu");
         JButton btnXoaPhieu = new JButton("Xóa phiếu");
         JButton btnLamMoi = new JButton("Làm mới");
 
@@ -196,20 +200,6 @@ public class MenuAdmin extends JFrame {
             lamMoiBangSach.run();
         });
 
-        btnCapNhat.addActionListener(e -> {
-            try {
-                String thongBao = quanLyPhieuMuon.capNhatPhieuMuon(
-                        txtMaPhieuMuon.getText().trim(),
-                        docSoNgayMuonHopLe(txtSoNgayMuon.getText().trim(), "Số ngày mượn")
-                );
-                lblThongBao.setText(thongBao);
-                locBangPhieuMuonTheoTuKhoa(modelPhieu, txtTimPhieu.getText().trim());
-                lamMoiBangSach.run();
-            } catch (IllegalArgumentException ex) {
-                lblThongBao.setText(ex.getMessage());
-            }
-        });
-
         btnXoaPhieu.addActionListener(e -> {
             int xacNhan = JOptionPane.showConfirmDialog(
                     this,
@@ -245,7 +235,6 @@ public class MenuAdmin extends JFrame {
         JPanel panelNut = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         panelNut.add(btnMuon);
         panelNut.add(btnTra);
-        panelNut.add(btnCapNhat);
         panelNut.add(btnXoaPhieu);
         panelNut.add(btnLamMoi);
 

@@ -93,28 +93,6 @@ public class QuanLyPhieuMuon {
         return "Không tìm thấy phiếu đang mượn";
     }
 
-    public String capNhatPhieuMuon(String maPhieuMuon, int soNgayMuonMoi) {
-        if (maPhieuMuon == null || maPhieuMuon.isBlank()) {
-            return "Mã phiếu mượn không hợp lệ";
-        }
-        if (soNgayMuonMoi <= 0) {
-            return "Số ngày mượn phải lớn hơn 0";
-        }
-
-        PhieuMuon phieuMuon = timPhieuTheoMa(maPhieuMuon);
-        if (phieuMuon == null) {
-            return "Không tìm thấy phiếu mượn";
-        }
-
-        if (quanLySach.timSachTheoMa(phieuMuon.getMaSach()) == null) {
-            return "Không tìm thấy sách của phiếu mượn";
-        }
-
-        phieuMuon.setHanTra(phieuMuon.getNgayMuon().plusDays(soNgayMuonMoi));
-        dongBoSoLuongConTheoMaSach(phieuMuon.getMaSach());
-        return "Cập nhật phiếu mượn thành công";
-    }
-
     public String xoaPhieuMuon(String maPhieuMuon) {
         if (maPhieuMuon == null || maPhieuMuon.isBlank()) {
             return "Mã phiếu mượn không hợp lệ";
