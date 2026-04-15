@@ -36,27 +36,41 @@ public class ThuVienApp {
      * Tao du lieu mau de test nhanh ung dung.
      */
     private void khoiTaoDuLieuMau() {
-        quanLyNguoiDung.themAdmin(new Admin("AD001", "Quan tri he thong", "admin", "123"));
-        quanLyNguoiDung.themThuThu(new ThuThu("TT001", "Thu Thu A", "thuthu", "123",
-            "0909888777", "thuthu.a@thuvien.vn", "Ha Noi"));
-        quanLyNguoiDung.themThuThu(new ThuThu("TT002", "Thu Thu B", "thuthu2", "123",
-            "0909555666", "thuthu.b@thuvien.vn", "Da Nang"));
+        // 1. Người dùng hệ thống
+        quanLyNguoiDung.themAdmin(new Admin("AD001", "Quản trị hệ thống", "admin", "123"));
+        quanLyNguoiDung.themThuThu(new ThuThu("TT001", "Nguyễn Thị Thủ Thư", "thuthu1", "123",
+            "0983123456", "thuthu.nguyen@ptit.edu.vn", "Tầng 2, Thư viện PTIT"));
+        quanLyNguoiDung.themThuThu(new ThuThu("TT002", "Trần Văn Sách", "thuthu2", "123",
+            "0983456789", "sach.tran@ptit.edu.vn", "Tầng 3, Thư viện PTIT - Cơ sở Hà Đông"));
 
-        quanLySach.themSach(new Sach("S001", "Lap trinh Java co ban", "Nguyen Van A", "CNTT", "NXB Tre", 2021, 10, 10));
-        quanLySach.themSach(new Sach("S002", "Cau truc du lieu", "Tran Thi B", "CNTT", "NXB Giao Duc", 2020, 5, 5));
-        quanLySach.themSach(new Sach("S003", "Co so du lieu", "Le Van E", "CNTT", "NXB Tong Hop", 2019, 8, 8));
-        quanLySach.themSach(new Sach("S004", "Kinh te hoc vi mo", "Pham Thi F", "Kinh Te", "NXB Lao Dong", 2018, 6, 6));
+        // 2. Sách/Tài liệu liên quan đến PTIT
+        quanLySach.themSach(new Sach("S001", "Lập trình mạng với Java", "Nguyễn Hoàng Hà", "CNTT - Viễn thông", "NXB Bưu điện", 2022, 15, 15));
+        quanLySach.themSach(new Sach("S002", "An toàn và bảo mật hệ thống thông tin", "PGS.TS Trần Đình Long", "An toàn thông tin", "NXB PTIT", 2021, 8, 8));
+        quanLySach.themSach(new Sach("S003", "Truyền thông số và xử lý tín hiệu", "TS Lê Văn Cường", "Kỹ thuật viễn thông", "NXB Bưu điện", 2020, 12, 12));
+        quanLySach.themSach(new Sach("S004", "Quản trị mạng Cisco CCNA", "ThS Phạm Thị Hồng", "Mạng máy tính", "NXB PTIT", 2023, 20, 20));
+        quanLySach.themSach(new Sach("S005", "Trí tuệ nhân tạo trong viễn thông", "GS.TS Nguyễn Văn Hùng", "AI - Dữ liệu lớn", "NXB Khoa học Kỹ thuật", 2022, 5, 5));
+        quanLySach.themSach(new Sach("S006", "Kinh tế số và chuyển đổi số", "TS Lê Thị Mai", "Quản trị kinh doanh số", "NXB Lao động", 2023, 7, 7));
+        quanLySach.themSach(new Sach("S007", "Lập trình Android cho sinh viên PTIT", "Khoa CNTT1", "CNTT", "NXB PTIT", 2024, 10, 10));
+        quanLySach.themSach(new Sach("S008", "Thiết kế vi mạch với FPGA", "TS Hoàng Văn Nam", "Điện tử viễn thông", "NXB Bưu điện", 2021, 6, 6));
 
-        quanLyDocGia.themDocGia(new DocGia("DG001", "Le Van C", "0900000001", "c@example.com", "Ha Noi"));
-        quanLyDocGia.themDocGia(new DocGia("DG002", "Pham Thi D", "0900000002", "d@example.com", "Da Nang"));
-        quanLyDocGia.themDocGia(new DocGia("DG003", "Nguyen Thi G", "0900000003", "g@example.com", "Hai Phong"));
-        quanLyDocGia.themDocGia(new DocGia("DG004", "Tran Van H", "0900000004", "h@example.com", "Can Tho"));
+        // 3. Độc giả (sinh viên, giảng viên PTIT)
+        quanLyDocGia.themDocGia(new DocGia("DG001", "Nguyễn Văn Anh - SV K21", "0981123456", "anh.nv21@ptit.edu.vn", "Ký túc xá PTIT Hà Đông"));
+        quanLyDocGia.themDocGia(new DocGia("DG002", "Trần Thị Bình - SV K22", "0981765432", "binh.tt22@ptit.edu.vn", "Phường Văn Quán, Hà Đông"));
+        quanLyDocGia.themDocGia(new DocGia("DG003", "Phạm Văn Cường - Giảng viên Khoa CNTT2", "0981987654", "cuong.pv@ptit.edu.vn", "Nhà giáo viên PTIT"));
+        quanLyDocGia.themDocGia(new DocGia("DG004", "Lê Thị Dung - SV K23", "0981456789", "dung.lt23@ptit.edu.vn", "Hà Nội - Cơ sở đào tạo PTIT"));
+        quanLyDocGia.themDocGia(new DocGia("DG005", "Hoàng Minh Đức - Học viên cao học", "0981888999", "duc.hm@ptithcm.edu.vn", "Cơ sở TP.HCM"));
 
-        // Du lieu mau phieu muon/tra de hien thi ngay o tab nghiep vu.
-        quanLyPhieuMuon.muonSach("PM001", "S001", "DG001", "TT001", 7);
-        quanLyPhieuMuon.muonSach("PM002", "S002", "DG002", "TT001", 14);
-        quanLyPhieuMuon.muonSach("PM003", "S003", "DG003", "TT002", 10);
-        quanLyPhieuMuon.traSach("PM001");
+        // 4. Phiếu mượn/trả sách thực tế
+        quanLyPhieuMuon.muonSach("PM001", "S001", "DG001", "TT001", 7);   // Lập trình mạng Java
+        quanLyPhieuMuon.muonSach("PM002", "S004", "DG002", "TT001", 14);  // CCNA
+        quanLyPhieuMuon.muonSach("PM003", "S002", "DG003", "TT002", 10);  // An toàn hệ thống
+        quanLyPhieuMuon.muonSach("PM004", "S007", "DG004", "TT002", 7);   // Android
+        quanLyPhieuMuon.muonSach("PM005", "S005", "DG005", "TT001", 21);  // AI trong viễn thông
+        
+        // Trả sách mẫu
+        quanLyPhieuMuon.traSach("PM001");  // đã trả
+        quanLyPhieuMuon.traSach("PM003");  // đã trả
+        // PM002, PM004, PM005 đang mượn
     }
 
     /**
